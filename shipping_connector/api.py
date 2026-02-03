@@ -197,32 +197,92 @@ def call_gls_api(data: dict, settings: dict) -> dict:
 
 def sync_tracking_to_shopify(dn, tracking_number: str) -> None:
 	"""
-	Sync tracking number to Shopify fulfillment.
+	Sync tracking number to Shopify by creating a fulfillment.
 	
-	Requires ecommerce_integrations app to be installed.
+	Uses the Shopify Admin API to:
+	1. Get fulfillment orders for the Shopify order
+	2. Create a fulfillment with tracking info
+	
+	Requires ecommerce_integrations app to be installed and configured.
 	
 	Args:
 		dn: Delivery Note document
 		tracking_number: Tracking number to sync
 	"""
 	try:
-		from ecommerce_integrations.shopify.fulfillment import create_fulfillment
-
-		create_fulfillment(dn.shopify_order_id, tracking_number, "GLS")
+		from ecommerce_integrations.shopify.constants import SETTING_DOCTYPE
+		
+		setting = frappe.get_doc(SETTING_DOCTYPE)
+		if not setting.enable_shopify:
+			return
+		
+		order_id = dn.shopify_order_id
+		if not order_id:
+			return
+		
+		# Build API URL and headers
+		shop_url = setting.shopify_url.rstrip("/")
+		api_version = "2024-01"
+		headers = {
+			"X-Shopify-Access-Token": setting.get_password("password"),
+			"Content-Type": "application/json",
+		}
+		
+		import requests
+		
+		# Step 1: Get fulfillment orders for this order
+		fo_url = f"https://{shop_url}/admin/api/{api_version}/orders/{order_id}/fulfillment_orders.json"
+		fo_response = requests.get(fo_url, headers=headers, timeout=30)
+		fo_response.raise_for_status()
+		
+		fulfillment_orders = fo_response.json().get("fulfillment_orders", [])
+		if not fulfillment_orders:
+			frappe.logger().warning(f"No fulfillment orders found for Shopify order {order_id}")
+			return
+		
+		# Get the first open fulfillment order
+		fulfillment_order = None
+		for fo in fulfillment_orders:
+			if fo.get("status") == "open":
+				fulfillment_order = fo
+				break
+		
+		if not fulfillment_order:
+			frappe.logger().info(f"No open fulfillment orders for Shopify order {order_id}")
+			return
+		
+		# Step 2: Create fulfillment with tracking
+		fulfillment_url = f"https://{shop_url}/admin/api/{api_version}/fulfillments.json"
+		fulfillment_data = {
+			"fulfillment": {
+				"line_items_by_fulfillment_order": [
+					{"fulfillment_order_id": fulfillment_order["id"]}
+				],
+				"tracking_info": {
+					"number": tracking_number,
+					"company": "GLS",
+					"url": f"https://gls-group.com/IT/it/servizi-online/tracking?match={tracking_number}",
+				},
+				"notify_customer": True,
+			}
+		}
+		
+		ff_response = requests.post(fulfillment_url, headers=headers, json=fulfillment_data, timeout=30)
+		ff_response.raise_for_status()
+		
+		frappe.logger().info(f"Shopify fulfillment created for order {order_id}: {tracking_number}")
 		frappe.msgprint(_("Tracking synced to Shopify"), indicator="green")
 
 	except ImportError:
-		# ecommerce_integrations not installed
-		frappe.logger().warning("ecommerce_integrations not installed - skipping Shopify sync")
+		frappe.logger().info("ecommerce_integrations not installed - skipping Shopify sync")
 
 	except Exception as e:
-		# Log but don't fail the shipment creation
 		frappe.log_error(
 			message=str(e),
 			title="Shopify Tracking Sync Error",
 		)
 		frappe.msgprint(
-			_("Warning: Could not sync tracking to Shopify: {0}").format(str(e)),
+			_("Note: Shopify sync pending - manual update may be needed"),
 			indicator="orange",
 		)
 

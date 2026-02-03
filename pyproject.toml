@@ -14,5 +14,4 @@ requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
-frappe = "^15"
-erpnext = "^15"
+frappe = "version-15"

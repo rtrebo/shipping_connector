@@ -1,0 +1,19 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+include license.txt
+recursive-include shipping_connector *.css
+recursive-include shipping_connector *.csv
+recursive-include shipping_connector *.html
+recursive-include shipping_connector *.ico
+recursive-include shipping_connector *.js
+recursive-include shipping_connector *.json
+recursive-include shipping_connector *.md
+recursive-include shipping_connector *.png
+recursive-include shipping_connector *.py
+recursive-include shipping_connector *.svg
+recursive-include shipping_connector *.txt
+recursive-exclude shipping_connector *.pyc

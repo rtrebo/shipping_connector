@@ -7,23 +7,15 @@ description = "Shipping Connector for ERPNext - GLS Integration with Shopify tra
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
-dependencies = [
-    # requests is already a frappe dependency
-]
-
-[project.urls]
-Homepage = "https://github.com/rtrebo/shipping_connector"
-Repository = "https://github.com/rtrebo/shipping_connector.git"
+dependencies = []
 
 [build-system]
 requires = ["flit_core >=3.4,<4"]
 build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
-frappe = ">=15.0.0,<16.0.0"
-erpnext = ">=15.0.0,<16.0.0"
-
-[tool.bench.dev-dependencies]
+frappe = ">=15.0.0-dev,<16.0.0"
+erpnext = ">=15.0.0-dev,<16.0.0"
 
 [tool.ruff]
 line-length = 110

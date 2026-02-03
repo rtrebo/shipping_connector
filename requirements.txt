@@ -1,3 +1,2 @@
 # Shipping Connector dependencies
-# frappe and erpnext are managed by bench
-requests>=2.28.0
+# frappe, erpnext, and requests are managed by bench
